@@ -42,8 +42,8 @@ class Weather:
     '''
     returns a string for text to speech giving a full weather readout
     '''
-    def full_weather_readout(self):
-        return 'Weather in ' + self.city + ' as of ' + str(datetime.fromtimestamp(self.time_last_updated)) + '. ' + self.description + '. Current temperature: ' + str(self.temperature) + ' degrees. Feels like: ' + str(self.feels_like) + ' degrees. Wind Speed: ' + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Sunrise: ' + str(self.sunrise) + '. Sunset: ' + str(self.sunset)
+    def full__readout(self):
+        return 'Weather in ' + self.city + ' as of ' + str(datetime.fromtimestamp(self.time_last_updated)) + '. ' + self.description + '. Current temperature: ' + str(self.temperature) + ' degrees. Feels like: ' + str(self.feels_like) + ' degrees. Wind Speed: ' + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Humidity: ' + str(self.humidity) + '.'
 
 
 class Weather_Forecast:
@@ -95,7 +95,13 @@ class Weather_Forecast:
         self.clouds = ret['clouds']
         print(ret)
 
-    
+    '''
+    returns a string for text to speech giving a full weather readout
+    '''
+    def full__readout(self):
+        return 'Weather forecast for ' + self.city + ' for the date of  ' + str(date.date())) + '. ' + self.description + '. Forecasted average temperature of : ' + str(self.average_temperature) + ' degrees with a high of ' + str(self.high_temperature) + ' degrees and a low of ' + str(self.low_temperature) + ' degrees. Wind Speed: '  + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Humidity: ' + str(self.humidity) + '. Probability of Precipitation: ' + str(self.precipitation_prob) + ' percent.
+
+ 
 
 
 
