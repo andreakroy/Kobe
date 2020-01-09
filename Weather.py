@@ -24,6 +24,7 @@ class Weather:
         ret = (json.loads(r.content)['data'])[0]
         self.city = ret['city_name']
         self.state = ret['state_code']
+        self.zip_code = zip_code
         self.time_last_updated = ret['ts']
         self.pressure = ret['pres']
         self.wind_speed = ret['wind_spd']
@@ -62,12 +63,12 @@ class Weather_Forecast:
         diff = date - current
         #throw exception uf the difference between the date and current date is less than 0 days
         if diff < d.timedelta(days = 0):
-            raise ValueError('Date parameter: ' + date + ' must be after the current date and time.') 
+            raise ValueError('Date parameter: ' + str(date) + ' must be after the current date and time.') 
         #if the difference between dae and current date > 0 and < 1, return the current weather
         if diff == d.timedelta(days = 0):
             raise ValueError('Cannot provide a weather forecast for the current day. Check current weather')
         if diff > d.timedelta(days = 16):
-            raise ValueError('Date parameter: ' + date + ' must be within 16 days of the ccurrent date.')
+            raise ValueError('Date parameter: ' + str(date) + ' must be within 16 days of the ccurrent date.')
         if not zip_code_is_valid(zip_code):
             raise ValueError(zip_code + ' is an invalid zip code.')
         days = diff.days
@@ -77,6 +78,7 @@ class Weather_Forecast:
         meta = json.loads(r.content)
         #want data from the last day requested
         ret = (meta['data'])[-1]
+        self.date = date
         self.city = meta['city_name']
         self.state = meta['state_code']
         self.pressure = ret['pres']
@@ -98,8 +100,8 @@ class Weather_Forecast:
     '''
     returns a string for text to speech giving a full weather readout
     '''
-    def full__readout(self):
-        return 'Weather forecast for ' + self.city + ' for the date of  ' + str(date.date())) + '. ' + self.description + '. Forecasted average temperature of : ' + str(self.average_temperature) + ' degrees with a high of ' + str(self.high_temperature) + ' degrees and a low of ' + str(self.low_temperature) + ' degrees. Wind Speed: '  + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Humidity: ' + str(self.humidity) + '. Probability of Precipitation: ' + str(self.precipitation_prob) + ' percent.
+    def full_readout(self):
+        return 'Weather forecast for ' + self.city + ' for the date of ' + self.date.strftime("%A %d. %B %Y") + '. ' + self.description + '. Forecasted average temperature of: ' + str(self.average_temperature) + ' degrees with a high of ' + str(self.high_temperature) + ' degrees and a low of ' + str(self.low_temperature) + ' degrees. Wind Speed: '  + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Humidity: ' + str(self.humidity) + ' percent. Chance of Rain: ' + str(self.precipitation_prob) + ' percent.'
 
  
 
