@@ -8,6 +8,7 @@ from playsound import playsound
 r = sr.Recognizer()
 m = sr.Microphone()
 
+global speech_input
 
 def read(text):
     mp3 = BytesIO()
@@ -17,9 +18,8 @@ def read(text):
 
 def callback(recognizer, audio):
     try:
-        read(recognizer.recognize_google(audio))
-        #if recognizer.recognize_google(audio) == 'kobe':
-            #print('Keyword')
+        #read(recognizer.recognize_google(audio))
+        speech_input =  recognizer.recognize_google(audio)
     except sr.UnknownValueError:
         print("Google Speech Recognition could not understand audio")
     except sr.RequestError as e:
@@ -30,9 +30,11 @@ def listen_for_key():
         r.energy_threshold = 300
         r.dynamic_energy_threshold = True
         r.adjust_for_ambient_noise(source)
-    r.listen_in_background(m, callback)
-
-
+    while x == True:
+        stop = r.listen_in_background(m, callback)
+        time.sleep(1)
+        if speech_input = 'kobe':
+    
 listen_for_key()
 time.sleep(20)
 
