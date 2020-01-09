@@ -4,6 +4,7 @@ from io import BytesIO
 import time
 from threading import Event
 from playsound import playsound
+import Weather as w
 
 r = sr.Recognizer()
 m = sr.Microphone()
@@ -18,8 +19,8 @@ def read(text):
 
 def callback(recognizer, audio):
     try:
-        #read(recognizer.recognize_google(audio))
-        speech_input =  recognizer.recognize_google(audio)
+        read(recognizer.recognize_google(audio))
+        #speech_input =  recognizer.recognize_google(audio)
     except sr.UnknownValueError:
         print("Google Speech Recognition could not understand audio")
     except sr.RequestError as e:
@@ -33,8 +34,6 @@ def listen_for_key():
     while x == True:
         stop = r.listen_in_background(m, callback)
         time.sleep(1)
-        if speech_input = 'kobe':
-    
-listen_for_key()
-time.sleep(20)
 
+x = w.Weather('61820')
+read(x.full_weather_readout())
