@@ -9,7 +9,7 @@ define an alarm object:
 '''
 
 class Alarm:
-    def __init__(self, title, time):
+    def __init__(self, time, title):
         self.title = title
         if not isinstance(time, datetime):
             raise ValueError('time parameter must be a datetime object')
@@ -26,8 +26,8 @@ class Alarm:
     
     def get_json_dict(self):
         return {
+                "time": self.time,
                 "title": self.title,
-                "time": self.time
             }
 
     def get_json(self):

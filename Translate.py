@@ -5,6 +5,7 @@ import time
 from threading import Event
 from playsound import playsound
 import Weather as w
+import datetime
 
 r = sr.Recognizer()
 m = sr.Microphone()
@@ -35,5 +36,7 @@ def listen_for_key():
         stop = r.listen_in_background(m, callback)
         time.sleep(1)
 
-x = w.Weather('61820')
-read(x.full_weather_readout())
+x = datetime.datetime(2020, 1, 21)
+t = w.Weather_Forecast('61820', x)
+print(t.full_readout())
+read(t.full_readout())
