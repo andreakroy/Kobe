@@ -12,9 +12,6 @@ api = Api(app)
 notification_list = []
 #stores all the alarms on the server
 alarm_list = []
-notification_list.append(Notification.Notification('a', 'b', 'c', 'd', 'e'))
-
-
 
 '''
 Method to determine whether or not the same object already exists in the list
@@ -49,7 +46,7 @@ def get_all_reminders():
     ret = []
     for notification in notification_list:
        ret.append(notification.get_json_dict())  
-    return jsonify(ret)
+    return ret
 
 '''
 GET Request method to return all alarms on the server as a json
@@ -58,7 +55,7 @@ def get_all_alarms():
     ret = []
     for alarm in alarm_list:
        ret.append(alarm.get_json_dict())  
-    return jsonify(ret)
+    return ret
 
 '''
 GET Request method for an individual reminder
@@ -68,7 +65,7 @@ Otherwise throws a ValueError
 def reminder_get(title):
     for notification in notification_list:
         if notification.title == title:
-            return notification.get_json()
+            return notification
         else:
             raise ValueError(title + " does not exist on the server.")
 
@@ -81,7 +78,7 @@ Otherwise throws a ValueError
 def alarm_get(time):
     for alarm in alarm_list:
         if alarm.time == time:
-            return alarm.get_json()
+            return alarm
         else:
             raise ValueError('There is no alarm at ' + time.isoformat('-') + ' on the server.')
 
@@ -92,11 +89,11 @@ POST Request method
 Takes all the requirements to create a new reminder object and appends the created reminder to notification_list
 Otherwise throws a ValueError
 '''
-def reminder_post(title, msg, start, end, rpt):
-    new = Notification.Notification(title, msg, start, end, rpt)
+def reminder_post(title, msg, start, end):
+    new = Notification.Notification(title, msg, start, end)
     if reminder_is_unique(new) == -1:
         notification_list.append(new)
-        return new.get_json()
+        return new
     else:
         raise ValueError("This event already exists")
 
@@ -112,7 +109,7 @@ def alarm_post(title, time):
     new = a.Alarm(title, time)
     if alarm_is_unique(new) == -1:
         alarm_list.append(new)
-        return new.get_json()
+        return new
     else:
         raise ValueError("This alarm already exists")
 
@@ -125,9 +122,9 @@ Each parameter which isn't passed remains the same on the server
 If the parameter is passed, the field is updated to the parameter
 Updates the notifcation with that title
 '''
-def reminder_put(title, msg, start, end, rpt):
+def reminder_put(title, msg, start, end):
     #if the reminder is not unique throw exception
-    if reminder_is_unique(Notification.Notification(title, msg, start, end, rpt)) != -1:
+    if reminder_is_unique(Notification.Notification(title, msg, start, end)) != -1:
         raise ValueError("This event already exists")
     #find the event on the server and update each field with the new parameters
     for notification in notification_list:
@@ -138,12 +135,10 @@ def reminder_put(title, msg, start, end, rpt):
                 notification.start = start
             if end != None:
                 notification.end = end
-            if rpt != None:
-                notification.rpt = rpt
-            return notification.get_json()
-    new = Notification.Notification(title, msg, start, end, rpt)   
+            return notification
+    new = Notification.Notification(title, msg, start, end)   
     notification_list.append(new)
-    return new.get_json()
+    return new
 
 
 
@@ -164,10 +159,10 @@ def alarm_put(title, time):
         if time == alarm.time:
             if title != None:
                 alarm.title = title
-            return alarm.get_json()
+            return alarm
     new = a.Alarm(title, time)   
     alarm_list.append(new)
-    return new.get_json()
+    return new
 
 
 
@@ -177,14 +172,15 @@ DELETE Request method
 Takes a hashed value representing a Notification and removes it from the server
 If the hashed value isn't found on the server, raise an exception
 '''
-def reminder_delete(hash_val):
-    for i in range(i, len(notification_list)):
-        if hash(notification_list[i]) == hash_val:
-            ret = notification_list[i]
-            del notification_list[i]
-            return ret.get_json()
-    raise ValueError("The object to be deleted is not on the server")
-
+def reminder_delete(title, msg, start, end):
+    other = Notification.Notification(title, msg, start, end)
+    test = reminder_is_unique(other)
+    if test < 0:
+        raise ValueError("The object to be deleted is not on the server")
+    else:
+        ret = notification_list[i]
+        del notification_list[i]
+        return ret
 
 
 '''
@@ -200,7 +196,7 @@ def alarm_delete(title, time):
     else:
         ret = alarm_list[test]
         del alarm_list[test]
-        return ret.get_json()
+        return ret
    
 
 
@@ -216,9 +212,9 @@ def reminders():
     '''
     if request.method == 'GET':
         if 'title' in request.args:
-            return reminder_get(request.args['title'])
+            return reminder_get(request.args['title']).get_json()
         else:
-            return get_all_reminders()
+            return jsonify(get_all_reminders())
     #POST
     elif request.method == 'POST':
         if 'title' not in request.args:
@@ -228,22 +224,30 @@ def reminders():
         elif 'start' not in request.args:
             raise TypeError("No start argument was passed")
         elif 'end' not in request.args:
-            raise TypeError("No end argument was passed")
-        elif 'rpt' not in request.args:
-            raise TypeError("No rpt argument was passed")   
-        return reminder_post(request.args['title'], request.args['msg'], request.args['start'],
-                request.args['end'], request.args['rpt'])
+            raise TypeError("No end argument was passed") 
+        return reminder_post(request.args['title'], request.args['msg'], d.datetime.fromtimestamp((float(request.args['start']))),
+                d.datetime.fromtimestamp((float(request.args['end'])))).get_json()
     #PUT
     elif request.method == 'PUT':
         if 'title' not in request.args:
             raise TypeError("No title argument was passed")
         return reminder_put(request.args['title'], request.args['msg'], request.args['start'],
-                request.args['end'], request.args['rpt'])
+                request.args['end']).get_json()
     #DELETE
     elif request.method =='DELETE':
-        if 'hash_val' not in request.args:
-            raise TypeError("No hash value was passed")
-        return reminder_delete(request.args['hash_val'])
+        if 'title' not in request.args:
+            raise TypeError("No title argument was passed")
+        elif 'msg' not in request.args:
+            raise TypeError("No message argument was passed")
+        elif 'start' not in request.args:
+            raise TypeError("No start time argument was passed")
+        elif 'msg' not in request.args:
+            raise TypeError("No end time argument was passed")
+        try:
+            return alarm_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
+        except TypeError:
+            raise TypeError('time parameter must be a unix timestamp')
+
 
 
 #define url routing
@@ -257,11 +261,11 @@ def alarms():
     if request.method == 'GET':
         if 'time' in request.args:
             try:
-                alarm_get(d.datetime.fromtimestamp(float(request.args['time'])))
+                alarm_get(d.datetime.fromtimestamp(float(request.args['time']))).get_json()
             except:
                 raise TypeError('time parameter must be a unix timestamp')
         else:
-            return get_all_alarms()
+            return jsonify(get_all_alarms())
     #POST
     elif request.method == 'POST':
         if 'title' not in request.args:
@@ -269,7 +273,7 @@ def alarms():
         elif 'time' not in request.args:
             raise TypeError("No time argument was passed")
         try:
-            return alarm_post(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+            return alarm_post(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
         except TypeError:
             raise TypeError('time parameter must be a unix timestamp')
 
@@ -278,7 +282,7 @@ def alarms():
         if 'time' not in request.args:
             raise TypeError("No time argument was passed")
         try:
-            return alarm_put(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+            return alarm_put(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
         except TypeError:
             raise TypeError('time parameter must be a unix timestamp')
 
@@ -290,15 +294,9 @@ def alarms():
         elif 'time' not in request.args:
             raise TypeError("No time argument was passed")
         try:
-            return alarm_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+            return alarm_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
         except TypeError:
             raise TypeError('time parameter must be a unix timestamp')
-
- 
-
-
-
-
 
 
 #DRIVER            
