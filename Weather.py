@@ -85,8 +85,8 @@ class Weather_Forecast:
         self.wind_speed = ret['wind_spd']
         self.wind_direction = ret['wind_cdir_full']
         self.average_temperature = ret['temp']
-        self.high_temperature = ret['high_temp']
-        self.low_temperature = ret['low_temp']
+        self.high_temperature = ret['max_temp']
+        self.low_temperature = ret['min_temp']
         self.precipitation_prob = ret['pop']
         self.snow = ret['snow']
         self.description = (ret['weather'])['description']
@@ -95,13 +95,12 @@ class Weather_Forecast:
         self.uv = ret['uv']
         self.humidity = ret['rh']
         self.clouds = ret['clouds']
-        print(ret)
 
     '''
     returns a string for text to speech giving a full weather readout
     '''
     def full_readout(self):
-        return 'Weather forecast for ' + self.city + ' for the date of ' + self.date.strftime("%A %d. %B %Y") + '. ' + self.description + '. Forecasted average temperature of: ' + str(self.average_temperature) + ' degrees with a high of ' + str(self.high_temperature) + ' degrees and a low of ' + str(self.low_temperature) + ' degrees. Wind Speed: '  + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + '. Humidity: ' + str(self.humidity) + ' percent. Chance of Rain: ' + str(self.precipitation_prob) + ' percent.'
+        return 'Weather forecast for ' + self.city + ' for the date of ' + self.date.strftime("%A %d. %B %Y") + '. ' + self.description + '. Forecasted average temperature of: ' + str(self.average_temperature) + ' degrees with a high of ' + str(self.high_temperature) + ' degrees and a low of ' + str(self.low_temperature) + ' degrees. Wind Speed: '  + str(self.wind_speed) + ' miles per hour, Wind Direction: ' + str(self.wind_direction) + ', Humidity: ' + str(self.humidity) + ' percent. Chance of Rain: ' + str(self.precipitation_prob) + ' percent.'
 
  
 

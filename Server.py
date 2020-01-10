@@ -3,7 +3,7 @@ from flask_restful import Resource, Api, reqparse
 import requests
 import Notification
 import Alarm as a
-import datetime
+import datetime as d
 
 app = Flask(__name__)
 api = Api(app)
@@ -25,7 +25,7 @@ If not, returns its index
 '''
 def reminder_is_unique(reminder):
     for i in range(0, len(notification_list)):
-        if hash(reminder) == hash(notification_list[i]):
+        if reminder == notification_list[i]:
             return i
     return -1
 
@@ -38,7 +38,7 @@ Else returns the index of the duplicate object on the server
 '''
 def alarm_is_unique(alarm):
     for i in range(0, len(alarm_list)):
-        if hash(reminder) == hash(notigication_list[i]):
+        if alarm == alarm_list[i]: 
             return i
     return -1
 
@@ -83,7 +83,7 @@ def alarm_get(time):
         if alarm.time == time:
             return alarm.get_json()
         else:
-            raise ValueError('There is no alarm at ' + time.strftime('%A %d. %B %&') + ' on the server.')
+            raise ValueError('There is no alarm at ' + time.isoformat('-') + ' on the server.')
 
 
 
@@ -105,6 +105,7 @@ def reminder_post(title, msg, start, end, rpt):
 '''
 POST Request method
 Takes all the requirements to create a new alarm object and appends the created alarm to alarm_list
+time is passed as a datetime object
 Otherwise throws a ValueError
 '''
 def alarm_post(title, time):
@@ -126,7 +127,7 @@ Updates the notifcation with that title
 '''
 def reminder_put(title, msg, start, end, rpt):
     #if the reminder is not unique throw exception
-    if is_unique(Notification.Notification(title, msg, start, end, rpt)) != -1:
+    if reminder_is_unique(Notification.Notification(title, msg, start, end, rpt)) != -1:
         raise ValueError("This event already exists")
     #find the event on the server and update each field with the new parameters
     for notification in notification_list:
@@ -142,7 +143,7 @@ def reminder_put(title, msg, start, end, rpt):
             return notification.get_json()
     new = Notification.Notification(title, msg, start, end, rpt)   
     notification_list.append(new)
-    return new
+    return new.get_json()
 
 
 
@@ -156,17 +157,17 @@ Updates the alarm at that time
 '''
 def alarm_put(title, time):
     #if the reminder is not unique throw exception
-    if is_unique(a.Alarm(title, time)) != -1:
+    if alarm_is_unique(a.Alarm(title, time)) != -1:
         raise ValueError("This alarm already exists")
     #find the alarm on the server and update each field with the new parameters
     for alarm in alarm_list:
         if time == alarm.time:
             if title != None:
                 alarm.title = title
-            return alarn.get_json()
+            return alarm.get_json()
     new = a.Alarm(title, time)   
     alarm_list.append(new)
-    return new
+    return new.get_json()
 
 
 
@@ -181,23 +182,26 @@ def reminder_delete(hash_val):
         if hash(notification_list[i]) == hash_val:
             ret = notification_list[i]
             del notification_list[i]
-            return ret
+            return ret.get_json()
     raise ValueError("The object to be deleted is not on the server")
 
 
 
 '''
 DELETE Request method
-Takes a hashed value representing an alarm and removes it from the server
-If the hashed value isn't found on the server, raise an exception
+Takes a title and time and removes the object with those properties from the server if it exists
+If the alarm isn't found on the server, raise an exception
 '''
-def alarm_delete(hash_val):
-    for i in range(i, len(alarm_list)):
-        if hash(alarm_list[i]) == hash_val:
-            ret = alarm_list[i]
-            del alarm_list[i]
-            return ret
-    raise ValueError("The alarm to be deleted is not on the server")
+def alarm_delete(title, time):
+    other = a.Alarm(title, time)
+    test = alarm_is_unique(other)
+    if test < 0:
+        raise ValueError("The alarm to be deleted is not on the server")
+    else:
+        ret = alarm_list[test]
+        del alarm_list[test]
+        return ret.get_json()
+   
 
 
 
@@ -252,7 +256,10 @@ def alarms():
     '''
     if request.method == 'GET':
         if 'time' in request.args:
-            return alarm_get(request.args['time'])
+            try:
+                alarm_get(d.datetime.fromtimestamp(float(request.args['time'])))
+            except:
+                raise TypeError('time parameter must be a unix timestamp')
         else:
             return get_all_alarms()
     #POST
@@ -260,22 +267,34 @@ def alarms():
         if 'title' not in request.args:
             raise TypeError("No title argument was passed")
         elif 'time' not in request.args:
-            raise TypeError("No time argument was passed")    
-        return alarm_post(request.args['title'], request.args['title'])
+            raise TypeError("No time argument was passed")
+        try:
+            return alarm_post(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+        except TypeError:
+            raise TypeError('time parameter must be a unix timestamp')
 
     #PUT
     elif request.method == 'PUT':
         if 'time' not in request.args:
             raise TypeError("No time argument was passed")
-        return reminder_put(request.args['title'], request.args['time'])
+        try:
+            return alarm_put(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+        except TypeError:
+            raise TypeError('time parameter must be a unix timestamp')
 
+ 
     #DELETE
     elif request.method =='DELETE':
-        if 'hash_val' not in request.args:
-            raise TypeError("No hash value was passed")
-        return reminder_delete(request.args['hash_val'])
+        if 'title' not in request.args:
+            raise TypeError("No title argument was passed")
+        elif 'time' not in request.args:
+            raise TypeError("No time argument was passed")
+        try:
+            return alarm_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time'])))
+        except TypeError:
+            raise TypeError('time parameter must be a unix timestamp')
 
-
+ 
 
 
 
