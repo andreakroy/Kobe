@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, abort
 from flask_restful import Resource, Api, reqparse
 import requests
 import Notification
@@ -22,6 +22,7 @@ If not, returns its index
 '''
 def reminder_is_unique(reminder):
     for i in range(0, len(notification_list)):
+        print(reminder == notification_list[i])
         if reminder == notification_list[i]:
             return i
     return -1
@@ -59,20 +60,19 @@ def get_all_alarms():
 
 '''
 GET Request method for an individual reminder
-Takes a title and returns the notification object as a json if it exists
+Takes a title and returns the notification objectif it exists
 Otherwise throws a ValueError
 '''
 def reminder_get(title):
     for notification in notification_list:
         if notification.title == title:
             return notification
-        else:
-            raise ValueError(title + " does not exist on the server.")
+    raise ValueError(title + " does not exist on the server.")
 
 
 '''
 GET request method for an individual alarm
-Takes a time and returns the alarm object as a json if it exists
+Takes a time and returns the alarm object if it exists
 Otherwise throws a ValueError
 '''
 def alarm_get(time):
@@ -123,24 +123,21 @@ If the parameter is passed, the field is updated to the parameter
 Updates the notifcation with that title
 '''
 def reminder_put(title, msg, start, end):
-    #if the reminder is not unique throw exception
-    if reminder_is_unique(Notification.Notification(title, msg=None, start=None, end=None)) != -1:
-        raise ValueError("This event already exists")
     #find the event on the server and update each field with the new parameters
-    for notification in notification_list:
-        if title == notification.title:
-            if msg != None:
-                notification.msg = msg
-            if start != None:
-                notification.start = start
-            if end != None:
-                notification.end = end
-            return notification
-    new = Notification.Notification(title, msg, start, end)   
-    notification_list.append(new)
-    return new
-
-
+    '''
+    try:
+        update = reminder_get(title)
+        print(update)
+        if msg != None:
+            update.msg = msg
+        if start != None:
+            update.start = start
+        if end != None:
+            update.end = end
+        return update
+    except ValueError:
+    '''
+    raise ValueError('No event with the title ' + title + ' exists on the server.')
 
 
 '''
@@ -237,14 +234,25 @@ def reminders():
             raise TypeError("No title argument was passed")
         par = {}
         if 'msg' in request.args:
-            par['msg'] = request.args
+            par['msg'] = request.args['msg']
+        else:
+            par['msg'] = None
         #if start and end times are present change them to datetimes and add to parameter list
         if 'start' in request.args:
             par['start'] = d.datetime.fromtimestamp((float(request.args['start'])))
+        else:
+            par['start'] = None
         if 'end' in request.args:
             par['end'] = d.datetime.fromtimestamp((float(request.args['end'])))
-        return reminder_put(request.args['title'], request.args['msg'], d.datetime.fromtimestamp((float(request.args['start']))),
-                d.datetime.fromtimestamp((float(request.args['end'])))).get_json()
+        else:
+            par['end'] = None
+        try:
+            return reminder_put(request.args['title'], par['msg'], par['start'], par['end']).get_json()
+        except ValueError as e:
+            print(str(e))
+            #response = app.response_class(response=jsonify(str(e)), status=404, mimetype='application/json')
+            return (str(e), 404)
+            #return make_response(jsonify(str(e)), 404)
 
     #DELETE
     elif request.method =='DELETE':
