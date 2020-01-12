@@ -17,6 +17,10 @@ class Reminder(n.Notification):
             raise TypeError('the end time must be a datetime object')
         if not isinstance(msg, str):
             raise TypeError('the msg parameter must be a string')
+        if start >= end:
+            raise ValueError('the end time must occur after the start time')
+        if time > end:
+            raise ValueError('the alert time must be before the end time')
         self.start = start
         self.end = end
         self.msg = msg
