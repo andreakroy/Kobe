@@ -46,5 +46,7 @@ class Notification:
     returns the json string representing a Notification Object
     '''
     def __str__(self):
-        return json.dumps(self.__dict__())
+        mod = self.__dict__()
+        mod['time'] = str(d.datetime.fromtimestamp(mod['time']))
+        return json.dumps(mod)
 

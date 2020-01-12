@@ -14,7 +14,7 @@ class Reminder(n.Notification):
     def __init__(self, time, title, start=None, end=None, msg=None):
         super(Reminder, self).__init__(time, title)
         if start == None:
-            start = d.datetime.now()
+            start = time
         if end == None:
             #t = start.replace(hour=0, minute=0, second=0, microsecond=0)
             #end = d.datetime() 
