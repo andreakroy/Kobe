@@ -10,47 +10,33 @@ api = Api(app)
 
 #stores all the notifications on the server
 notification_list = []
-#stores all the alarms on the server
-alarm_list = []
 
 '''
 Method to determine whether or not the same object already exists in the list
-Takes a notification object as a parameter and checks the hash code against all
-other reminders on the server
+Takes a notification object as a parameter and checks to see if there is a duplicate object on the server
 If the object is unique, returns -1
 If not, returns its index
 '''
-def reminder_is_unique(reminder):
+def is_unique(notification):
     for i in range(0, len(notification_list)):
-        print(reminder == notification_list[i])
-        if reminder == notification_list[i]:
-            return i
-    return -1
-
-'''
-Method to check whther or not the same object already exists in the list
-Takes an alarm object as a parameter and checks the hash code
-against all other alarms on the server
-If the object is unique, returns -1
-Else returns the index of the duplicate object on the server
-'''
-def alarm_is_unique(alarm):
-    for i in range(0, len(alarm_list)):
-        if alarm == alarm_list[i]: 
+        if isinstance(notification_list[i], type(notification)) and notification == notification_list[i]:
             return i
     return -1
 
 '''
 GET Request method to return all notifications on the server as a json 
+if no type_in parameter is passed, every notification object is returned
+if type_in == Reminder, return all reminders on the server as a dictionary
+
 '''
-def get_all_reminders():
+def get_all_reminders(type_in = None):
     ret = []
     for notification in notification_list:
        ret.append(notification.get_json_dict())  
     return ret
 
 '''
-GET Request method to return all alarms on the server as a json
+GET Request method to return all alarms on the server as a list
 '''
 def get_all_alarms():
     ret = []
@@ -91,6 +77,7 @@ Otherwise throws a ValueError
 '''
 def reminder_post(title, msg, start, end):
     new = Notification.Notification(title, msg, start, end)
+    print(reminder_is_unique(new))
     if reminder_is_unique(new) == -1:
         notification_list.append(new)
         return new
@@ -124,10 +111,8 @@ Updates the notifcation with that title
 '''
 def reminder_put(title, msg, start, end):
     #find the event on the server and update each field with the new parameters
-    '''
     try:
         update = reminder_get(title)
-        print(update)
         if msg != None:
             update.msg = msg
         if start != None:
@@ -136,8 +121,7 @@ def reminder_put(title, msg, start, end):
             update.end = end
         return update
     except ValueError:
-    '''
-    raise ValueError('No event with the title ' + title + ' exists on the server.')
+        raise ValueError('No event with the title ' + title + ' exists on the server.')
 
 
 '''
@@ -166,7 +150,7 @@ def alarm_put(time, title=None):
 
 '''
 DELETE Request method
-Takes a hashed value representing a Notification and removes it from the server
+Takes a reminder and removes it from the server
 If the hashed value isn't found on the server, raise an exception
 '''
 def reminder_delete(title, msg, start, end):
@@ -212,10 +196,11 @@ def reminders():
             try:
                 return reminder_get(request.args['title'])
             except ValueError as e:
-                return (jsonify(str(e)), 404)
+                return (str(e), 404)
 
         else:
             return jsonify(get_all_reminders())
+    
     #POST
     elif request.method == 'POST':
         if 'title' not in request.args:
@@ -226,8 +211,16 @@ def reminders():
             raise TypeError("No start argument was passed")
         elif 'end' not in request.args:
             raise TypeError("No end argument was passed") 
-        return reminder_post(request.args['title'], request.args['msg'], d.datetime.fromtimestamp((float(request.args['start']))),
-                d.datetime.fromtimestamp((float(request.args['end'])))).get_json()
+        try:
+            return reminder_post(request.args['title'], request.args['msg'],
+                    d.datetime.fromtimestamp((float(request.args['start']))),
+                    d.datetime.fromtimestamp((float(request.args['end'])))).get_json()
+        except ValueError as e:
+            return(str(e), 409)
+        except (OverflowError, OSError) as e:
+            return (str(e) + ' (start or end parameter is not a valid unix timestamp)', 400)
+ 
+    
     #PUT
     elif request.method == 'PUT':
         if 'title' not in request.args:
@@ -249,11 +242,10 @@ def reminders():
         try:
             return reminder_put(request.args['title'], par['msg'], par['start'], par['end']).get_json()
         except ValueError as e:
-            print(str(e))
-            #response = app.response_class(response=jsonify(str(e)), status=404, mimetype='application/json')
             return (str(e), 404)
-            #return make_response(jsonify(str(e)), 404)
-
+        except (OverflowError, OSError) as e:
+            return (str(e) + ' (start or end parameter is not a valid unix timestamp)', 400)
+ 
     #DELETE
     elif request.method =='DELETE':
         if 'title' not in request.args:
@@ -266,8 +258,10 @@ def reminders():
             raise TypeError("No end time argument was passed")
         try:
             return reminder_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
-        except TypeError:
-            raise TypeError('time parameter must be a unix timestamp')
+        except (OverflowError, OSError) as e:
+            return (str(e) + ' (start or end parameter is not a valid unix timestamp)', 400)
+        except ValueError as e:
+            return (str(e), 404)
 
 
 

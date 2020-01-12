@@ -1,6 +1,6 @@
-import requests
-from datetime import datetime
-from flask import jsonify 
+import datetime as d
+import Notification as n
+
 
 '''
 define an alarm object:
@@ -8,28 +8,24 @@ define an alarm object:
     time: the time of the alarm
 '''
 
-class Alarm:
-    def __init__(self, time, title):
-        self.title = title
-        if not isinstance(time, datetime):
-            raise ValueError('time parameter must be a datetime object')
-        self.time = time
+class Alarm(n.Notification):
+    
+    def __init_(self, time, title):
+        super(time, title)
 
     def __eq__(self, other):
-        if not isinstance(other, Alarm):
-            return False
-        if other.title != self.title:
-            return False
-        if other.time != self.time:
-            return False
-        return True
+        if isinstance(other, Alarm) and super(Alarm, self).__eq__(other):
+            return True
+        return False
     
-    def get_json_dict(self):
-        return {
-                "time": self.time,
-                "title": self.title,
-            }
+    def __dict__(self):
+        return super(Alarm, self).__dict__()
 
-    def get_json(self):
-        return jsonify(self.get_json_dict())
+    def __str__(self):
+        return super(Alarm, self).__str__()
 
+x = Alarm(d.datetime(2020, 1, 15), 'abc')
+#print(x == Alarm(d.datetime(2020, 1, 15), 'abc'))
+#print(dict(x))
+print(x.__dict__())
+print(x)
