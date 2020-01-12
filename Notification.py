@@ -5,8 +5,8 @@ class Notification:
     
     '''
     Notification object constructor
-        time -----> The alert time of the notification
-        title ----> The title of the notification
+        -time -----> The alert time of the notification
+        -title ----> The title of the notification
     '''
     def __init__(self, time, title):
         if not isinstance(time, d.datetime):

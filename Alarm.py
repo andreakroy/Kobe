@@ -4,14 +4,13 @@ import Notification as n
 
 '''
 define an alarm object:
-    title: the title of the alarm
-    time: the time of the alarm
+    -time -----> the alert time of the alarm
+    -title ----> the title of the alarm
 '''
-
 class Alarm(n.Notification):
     
     def __init_(self, time, title):
-        super(time, title)
+        super(Alarm, self).__init__(time, title)
 
     def __eq__(self, other):
         if isinstance(other, Alarm) and super(Alarm, self).__eq__(other):
@@ -24,8 +23,5 @@ class Alarm(n.Notification):
     def __str__(self):
         return super(Alarm, self).__str__()
 
-x = Alarm(d.datetime(2020, 1, 15), 'abc')
-#print(x == Alarm(d.datetime(2020, 1, 15), 'abc'))
-#print(dict(x))
-print(x.__dict__())
-print(x)
+a = Alarm(d.datetime.now(), 'ab')
+print(a.__dict__())
