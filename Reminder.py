@@ -1,5 +1,7 @@
 import datetime as d
 import Notification as n
+import json
+
 '''
 define a reminder object:
     -time -----> the alert time of the reminder
@@ -9,13 +11,20 @@ define a reminder object:
     -end ------> the datetime object representing the end of the reminder
 '''
 class Reminder(n.Notification):
-    def __init__(self, time, title, start, end, msg=None):
+    def __init__(self, time, title, start=None, end=None, msg=None):
         super(Reminder, self).__init__(time, title)
-        if not isinstance(start, d.datetime):
+        if start == None:
+            start = d.datetime.now()
+        if end == None:
+            #t = start.replace(hour=0, minute=0, second=0, microsecond=0)
+            #end = d.datetime() 
+            end = start + d.timedelta(days=1)
+            end = end.replace(hour=0, minute=0, second=0, microsecond=0)
+        if start != None and not isinstance(start, d.datetime):
             raise TypeError('the start time must be a datetime object')
-        if not isinstance(end, d.datetime):
+        if end != None and not isinstance(end, d.datetime):
             raise TypeError('the end time must be a datetime object')
-        if not isinstance(msg, str):
+        if msg != None and not isinstance(msg, str):
             raise TypeError('the msg parameter must be a string')
         if start >= end:
             raise ValueError('the end time must occur after the start time')
@@ -48,8 +57,9 @@ class Reminder(n.Notification):
                 
 
     def __str__(self):
-        return super(Reminder, self).__str__()
+        mod = json.loads(super(Reminder, self).__str__())
+        mod['start'] = str(d.datetime.fromtimestamp(mod['start']))
+        mod['end'] = str(d.datetime.fromtimestamp(mod['end']))
+        return json.dumps(mod)
 
-
-x = Reminder(d.datetime.now(), 'abc', d.datetime.now(), d.datetime.now(), '123')
-print(x)
+print(Reminder(d.datetime.now(), 'abc'))

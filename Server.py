@@ -1,9 +1,10 @@
 from flask import Flask, Response, jsonify, request, abort
 from flask_restful import Resource, Api, reqparse
-import requests
-import Notification
+import requests 
+import Notification as n
 import Alarm as a
 import datetime as d
+import Reminder as r
 
 app = Flask(__name__)
 api = Api(app)
@@ -11,38 +12,53 @@ api = Api(app)
 #stores all the notifications on the server
 notification_list = []
 
+
 '''
 Method to determine whether or not the same object already exists in the list
-Takes a notification object as a parameter and checks to see if there is a duplicate object on the server
-If the object is unique, returns -1
-If not, returns its index
+    -if the notification does exist on the server, return the index of the object on the server
+    -else return -1
 '''
 def is_unique(notification):
+    if not isinstance(notification, n.Notification):
+        raise TypeError('Notification parameter must be a notification object')
     for i in range(0, len(notification_list)):
-        if isinstance(notification_list[i], type(notification)) and notification == notification_list[i]:
+        if notification == notification_list[i]:
             return i
     return -1
 
-'''
-GET Request method to return all notifications on the server as a json 
-if no type_in parameter is passed, every notification object is returned
-if type_in == Reminder, return all reminders on the server as a dictionary
 
 '''
-def get_all_reminders(type_in = None):
+GET Request method to return a list of Notifications from the server
+    -if no type_in parameter is passed, every notification object is returned as a list of json strings
+    -if type_in == Reminder, return all reminders on the server as a list of json strings
+    -if type_in == Alarm, return all alarms on the server as a list of json strings
+    -else if no parameter is passed, default returns all notifications
+    -also can search for events with **alert time** within a range
+    -if no start is provided, any notification before the end time is returned
+    -if no end is provided, any notification after the start time is returned
+    -if no end or start is provided, all notifications are returned
+    -also searches by a query string searching the titles or the Notifcations (and the message if type is Reminder)
+'''
+def get(type_=n.Notification, start=None, end=None, query=None):
+    if not isinstance(type_, type):
+        raise TypeError('The type_parameter is invalid. type_ must be type object')
+    if type_ != n.Notification or type_ != r.Reminder or type_ != a.Alarm:
+        raise ValueError('The type_ parameter is invalid. type_ must be Notification, Reminder, or Alarm')
+    if start != None and not isinstance(start, d.datetime):
+        raise TypeError('The start parameter is invalid. start must be a datetime object')
+    if end != None and not isinstance(end, d.datetime):
+        raise TypeError('The end parameter is invalid. end must be a datetime object')
+    if query != None and not isinstance(query, str):
+        raise TypeError('The query parameter is invalid. query must be a string')
     ret = []
     for notification in notification_list:
-       ret.append(notification.get_json_dict())  
+        if isinstance(notification, type_):
+            if start == None or notification.time >= start:
+                if end == None or notification.time <= end:
+                    if query == None or query in notification.title or (type_ == r.Reminder and query in notification.msg):
+                        ret.append(notification.__str__())  
     return ret
 
-'''
-GET Request method to return all alarms on the server as a list
-'''
-def get_all_alarms():
-    ret = []
-    for alarm in alarm_list:
-       ret.append(alarm.get_json_dict())  
-    return ret
 
 '''
 GET Request method for an individual reminder

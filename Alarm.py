@@ -23,5 +23,3 @@ class Alarm(n.Notification):
     def __str__(self):
         return super(Alarm, self).__str__()
 
-a = Alarm(d.datetime.now(), 'ab')
-print(a.__dict__())
