@@ -1,6 +1,6 @@
 import datetime as d
 import Notification as n
-import json
+import json as j
 
 '''
 define a reminder object:
@@ -16,8 +16,6 @@ class Reminder(n.Notification):
         if start == None:
             start = time
         if end == None:
-            #t = start.replace(hour=0, minute=0, second=0, microsecond=0)
-            #end = d.datetime() 
             end = start + d.timedelta(days=1)
             end = end.replace(hour=0, minute=0, second=0, microsecond=0)
         if start != None and not isinstance(start, d.datetime):
@@ -33,6 +31,18 @@ class Reminder(n.Notification):
         self.start = start
         self.end = end
         self.msg = msg
+    
+    @classmethod 
+    def fromjson(type_, json):
+        
+        try:
+            string = j.loads(json)
+            print(string)
+            return Reminder(d.datetime.fromtimestamp(int(float(string['time']))), string['title'],
+                    d.datetime.fromtimestamp(int(float(string['start']))),
+                    d.datetime.fromtimestamp(int(float(string['end']))), string['msg'])
+        except (KeyError):
+            raise ValueError('The passed string is not json deserializeable')
         
     def __eq__(self, other):
         if not super(Reminder, self).__eq__(other):
@@ -57,9 +67,10 @@ class Reminder(n.Notification):
                 
 
     def __str__(self):
-        mod = json.loads(super(Reminder, self).__str__())
-        mod['start'] = str(d.datetime.fromtimestamp(mod['start']))
-        mod['end'] = str(d.datetime.fromtimestamp(mod['end']))
-        return json.dumps(mod)
+        return j.dumps(self.__dict__())
 
-print(Reminder(d.datetime.now(), 'abc'))
+
+no = Reminder(d.datetime.now(), 'abcdefg', d.datetime.today(), d.datetime.today() + d.timedelta(days=1), 'abc')
+print(no.__str__())
+no2 = Reminder.fromjson(no.__str__())
+print(no2.__str__())

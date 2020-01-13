@@ -5,59 +5,14 @@ import Notification as n
 import Alarm as a
 import datetime as d
 import Reminder as r
+import atexit
+import json
 
 app = Flask(__name__)
 api = Api(app)
 
-#stores all the notifications on the server
-notification_list = []
 
 
-'''
-Method to determine whether or not the same object already exists in the list
-    -if the notification does exist on the server, return the index of the object on the server
-    -else return -1
-'''
-def is_unique(notification):
-    if not isinstance(notification, n.Notification):
-        raise TypeError('Notification parameter must be a notification object')
-    for i in range(0, len(notification_list)):
-        if notification == notification_list[i]:
-            return i
-    return -1
-
-
-'''
-GET Request method to return a list of Notifications from the server
-    -if no type_in parameter is passed, every notification object is returned as a list of json strings
-    -if type_in == Reminder, return all reminders on the server as a list of json strings
-    -if type_in == Alarm, return all alarms on the server as a list of json strings
-    -else if no parameter is passed, default returns all notifications
-    -also can search for events with **alert time** within a range
-    -if no start is provided, any notification before the end time is returned
-    -if no end is provided, any notification after the start time is returned
-    -if no end or start is provided, all notifications are returned
-    -also searches by a query string searching the titles or the Notifcations (and the message if type is Reminder)
-'''
-def get(type_=n.Notification, start=None, end=None, query=None):
-    if not isinstance(type_, type):
-        raise TypeError('The type_parameter is invalid. type_ must be type object')
-    if type_ != n.Notification or type_ != r.Reminder or type_ != a.Alarm:
-        raise ValueError('The type_ parameter is invalid. type_ must be Notification, Reminder, or Alarm')
-    if start != None and not isinstance(start, d.datetime):
-        raise TypeError('The start parameter is invalid. start must be a datetime object')
-    if end != None and not isinstance(end, d.datetime):
-        raise TypeError('The end parameter is invalid. end must be a datetime object')
-    if query != None and not isinstance(query, str):
-        raise TypeError('The query parameter is invalid. query must be a string')
-    ret = []
-    for notification in notification_list:
-        if isinstance(notification, type_):
-            if start == None or notification.time >= start:
-                if end == None or notification.time <= end:
-                    if query == None or query in notification.title or (type_ == r.Reminder and query in notification.msg):
-                        ret.append(notification.__str__())  
-    return ret
 
 
 '''
@@ -196,47 +151,190 @@ def alarm_delete(time, title):
         return ret
    
 
-
-
-
-#define url routing
-@app.route('/reminders', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def reminders():
-    #GET
+#notification class holds all notification objects on the server
+#only one Notifications class can ever be instantiated to prevent confusion
+class Notifications:
     '''
-    if a title argument is passed get the notification with that title if it exists
-    else get a json with every notification on the server
+    Notifications is initialized with a notification list if a notifications.data file exists
+    else empty list
     '''
-    if request.method == 'GET':
-        if 'title' in request.args: 
-            try:
-                return reminder_get(request.args['title'])
-            except ValueError as e:
-                return (str(e), 404)
-
-        else:
-            return jsonify(get_all_reminders())
-    
-    #POST
-    elif request.method == 'POST':
-        if 'title' not in request.args:
-            raise TypeError("No title argument was passed")
-        elif 'msg' not in request.args:
-            raise TypeError("No msg argument was passed") 
-        elif 'start' not in request.args:
-            raise TypeError("No start argument was passed")
-        elif 'end' not in request.args:
-            raise TypeError("No end argument was passed") 
+    def __init__(self):
         try:
-            return reminder_post(request.args['title'], request.args['msg'],
-                    d.datetime.fromtimestamp((float(request.args['start']))),
-                    d.datetime.fromtimestamp((float(request.args['end'])))).get_json()
-        except ValueError as e:
-            return(str(e), 409)
-        except (OverflowError, OSError) as e:
-            return (str(e) + ' (start or end parameter is not a valid unix timestamp)', 400)
- 
+            with open('notifications.json', 'r') as notifications:
+                temp = json.load(notifications)
+                for i in temp:
+                    try:
+                        element = json.loads(i)
+                        self.notification_list.append(r.Reminder(element['time))
+                    if not isinstance(i, n.Notification):
+                        raise TypeError('All items in notification_list must be Notifcation objecs')
+                self.notification_list = temp
+        except (FileNotFoundError, TypeError):
+            self.notification_list = []
     
+
+    '''
+    Method to determine whether or not the same object already exists in the list
+        -if the notification does exist on the server, return the index of the object on the server
+        -else return -1
+    '''
+    def is_unique(self, notification):
+        if not isinstance(notification, n.Notification):
+            raise TypeError('Notification parameter must be a notification object')
+        for i in range(0, len(self.notification_list)):
+            if notification == self.notification_list[i]:
+                return i
+        return -1
+
+    
+    '''
+    GET Request method to return a list of Notifications from the server
+        -if no type_in parameter is passed, every notification object is returned as a list of json strings
+        -if type_in == Reminder, return all reminders on the server as a list of json strings
+        -if type_in == Alarm, return all alarms on the server as a list of json strings
+        -else if no parameter is passed, default returns all notifications
+        -also can search for events with **alert time** within a range
+        -if no start is provided, any notification before the end time is returned
+        -if no end is provided, any notification after the start time is returned
+        -if no end or start is provided, all notifications are returned
+        -also searches by a query string searching the titles or the Notifcations (and the message if type is Reminder)
+    '''
+    def get(self, type_=n.Notification, start=None, end=None, query=None):
+        if not isinstance(type_, type):
+            raise TypeError('The type_parameter is invalid. type_ must be type object')
+        if type_ != n.Notification or type_ != r.Reminder or type_ != a.Alarm:
+            raise ValueError('The type_ parameter is invalid. type_ must be Notification, Reminder, or Alarm')
+        if start != None and not isinstance(start, d.datetime):
+            raise TypeError('The start parameter is invalid. start must be a datetime object')
+        if end != None and not isinstance(end, d.datetime):
+            raise TypeError('The end parameter is invalid. end must be a datetime object')
+        if query != None and not isinstance(query, str):
+            raise TypeError('The query parameter is invalid. query must be a string')
+        ret = []
+        for notification in notification_list:
+            if isinstance(notification, type_):
+                if start == None or notification.time >= start:
+                    if end == None or notification.time <= end:
+                        if query == None or query in notification.title or (type_ == r.Reminder and query in notification.msg):
+                            ret.append(notification.__str__())  
+        return ret
+
+    
+    def post(self, type_, time, title, start=None, end=None, msg=None):
+        if not isinstance(type_, type):
+            raise TypeError('The type_parameter is invalid. type_ must be type object')
+        if type_ != type_ != r.Reminder or type_ != a.Alarm:
+            raise ValueError('The type_ parameter is invalid. type_ must be Reminder, or Alarm')
+        if start != None and not isinstance(start, d.datetime):
+            raise TypeError('The start parameter is invalid. start must be a datetime object')
+        if end != None and not isinstance(end, d.datetime):
+            raise TypeError('The end parameter is invalid. end must be a datetime object')
+        if msg != None and not isinstance(query, str):
+            raise TypeError('The msg parameter is invalid. msg must be a string')
+        if type_ == r.Reminder:
+            try:
+                temp = r.Reminder(time, title, start, end, msg)
+                if self.is_unique(temp) == -1:
+                    self.notification_list.append(temp)
+                    return temp
+                else:
+                    raise ValueError('This Notification already exists on the server')
+            except (TypeError, ValueError) as e:
+                pass
+        else:
+            try:
+                temp = a.Alarm(time, title)
+                if self.is_unique(temp) == -1:
+                    self.notification_list.append(temp)
+                    return temp
+                else:
+                    raise ValueError('This Notifcation already exists on the server')
+            except (TypeError, ValueError) as e:
+                pass
+
+    
+    #define url routing
+    @app.route('/notifications', methods=['GET', 'POST', 'PUT', 'DELETE'])
+    def notifications(self):
+        #GET
+        '''
+        if a title argument is passed get the notification with that title if it exists
+        else get a json with every notification on the server
+        '''
+        if request.method == 'GET':
+            try:
+                try:
+                    type_  = request.args['type']
+                except KeyError as e:
+                    type_ = n.Notification
+                
+                try:
+                    start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
+                except KeyError as e:
+                    start  = None
+                
+                try:
+                    end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
+                except KeyError as e:
+                    end = None
+
+                try:
+                    query  = request.args['query']
+                except KeyError as e:
+                    query = None
+
+                temp = self.get(type_, start, end, query)
+                if len(temp) == 0:
+                    return ('No Notifications found', 404)
+                else:
+                    return jsonify(temp)
+            
+            except (TypeError, ValueError) as e:
+                return (str(e), 400)
+        
+
+
+ 
+               
+        #POST
+        elif request.method == 'POST':
+            try:
+                try:
+                    type_  = request.args['type']
+                except KeyError as e:
+                    raise ValueError('POST request requires the type of the notification')
+                
+                try:
+                    time  = d.datetime.fromtimestamp(int(float(request.args['time'])))
+                except KeyError as e:
+                    raise ValueError('POST request requires the alert time of the notification' )
+               
+                try:
+                    title = request.args('title')
+                except KeyError as e:
+                    raise ValueError('POST request requires the title of the notifcation')
+                
+                try:
+                    start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
+                except KeyError as e:
+                    start  = None
+                
+                try:
+                    end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
+                except KeyError as e:
+                    end = None
+
+                try:
+                    msg  = request.args['msg']
+                except KeyError as e:
+                    msg = None
+
+                return post(type_, time, title. start, end, msg)
+            
+            except (TypeError, ValueError, OSError, OverflowError) as e:
+                return (str(e), 400)
+            
+    ''' 
     #PUT
     elif request.method == 'PUT':
         if 'title' not in request.args:
@@ -277,59 +375,25 @@ def reminders():
         except (OverflowError, OSError) as e:
             return (str(e) + ' (start or end parameter is not a valid unix timestamp)', 400)
         except ValueError as e:
-            return (str(e), 404)
+        return (str(e), 404)
+
+    
+    actions to take when the server shuts down
+    the notification list is exported to a binary stream called notifications.data
+    this file is imported when the server restarts
+    
+    def on_shutdown(self):
+        with open('notifications.data', 'wb') as inp:
+            pickle.dump(self.notification_list, inp)
 
 
 
-#define url routing
-@app.route('/alarms', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def alarms():
-    #GET
-    '''
-    return the alarm object represented by the alarm time if a datetime is supplied    
-    else return a json with all alarms on the server
-    '''
-    if request.method == 'GET':
-        if 'time' in request.args:
-            try:
-                alarm_get(d.datetime.fromtimestamp(float(request.args['time']))).get_json()
-            except:
-                raise TypeError('time parameter must be a unix timestamp')
-        else:
-            return jsonify(get_all_alarms())
-    #POST
-    elif request.method == 'POST':
-        if 'title' not in request.args:
-            raise TypeError("No title argument was passed")
-        elif 'time' not in request.args:
-            raise TypeError("No time argument was passed")
-        try:
-            return alarm_post(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
-        except TypeError:
-            raise TypeError('time parameter must be a unix timestamp')
-
-    #PUT
-    elif request.method == 'PUT':
-        if 'time' not in request.args:
-            raise TypeError("No time argument was passed")
-        try:
-            return alarm_put(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
-        except TypeError:
-            raise TypeError('time parameter must be a unix timestamp')
-
- 
-    #DELETE
-    elif request.method =='DELETE':
-        if 'title' not in request.args:
-            raise TypeError("No title argument was passed")
-        elif 'time' not in request.args:
-            raise TypeError("No time argument was passed")
-        try:
-            return alarm_delete(request.args['title'], d.datetime.fromtimestamp(float(request.args['time']))).get_json()
-        except TypeError:
-            raise TypeError('time parameter must be a unix timestamp')
+'''
 
 
 #DRIVER            
 if __name__ == '__main__':
+    context = Notifications()
+    #atexit.register(on_shutdown(context))
     app.run(debug=True)
+    

@@ -1,7 +1,7 @@
 import datetime as d
-import json
+import json as j
 
-class Notification:
+class Notification():
     
     '''
     Notification object constructor
@@ -16,6 +16,19 @@ class Notification:
         self.time = time
         self.title = title
 
+    @classmethod
+    def fromjson(cls, json):
+        if not isinstance(json, str):
+            raise TypeError('The json parameter must be a json string')
+        #if not isinstance(type_, type):
+            #raise TypeError('The type_ parameter must be a type object')
+        #if not isinstance(type_, Notification):
+            #raise ValueError('type_ must be a Notification type')
+        try:
+            string = j.loads(json)
+            return cls(d.datetime.fromtimestamp(int(float(string['time']))), string['title'])
+        except KeyError as e:
+            raise ValueError('The passed string is not json deserializable')
     '''
     Check if two notification objects are equal
         -The other object must also be a notification object
@@ -46,7 +59,5 @@ class Notification:
     returns the json string representing a Notification Object
     '''
     def __str__(self):
-        mod = self.__dict__()
-        mod['time'] = str(d.datetime.fromtimestamp(mod['time']))
-        return json.dumps(mod)
+        return j.dumps(self.__dict__())
 
