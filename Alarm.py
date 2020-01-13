@@ -9,9 +9,13 @@ define an alarm object:
 '''
 class Alarm(n.Notification):
     
-    def __init_(self, time, title):
+    def __init__(self, time, title):
         super(Alarm, self).__init__(time, title)
-
+    
+    @classmethod
+    def fromjson(cls, json):
+        return super().fromjson(json)
+    
     def __eq__(self, other):
         if isinstance(other, Alarm) and super(Alarm, self).__eq__(other):
             return True

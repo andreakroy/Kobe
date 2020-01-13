@@ -12,7 +12,7 @@ define a reminder object:
 '''
 class Reminder(n.Notification):
     def __init__(self, time, title, start=None, end=None, msg=None):
-        super(Reminder, self).__init__(time, title)
+        super().__init__(time, title)
         if start == None:
             start = time
         if end == None:
@@ -33,12 +33,10 @@ class Reminder(n.Notification):
         self.msg = msg
     
     @classmethod 
-    def fromjson(type_, json):
-        
+    def fromjson(cls, json):
         try:
             string = j.loads(json)
-            print(string)
-            return Reminder(d.datetime.fromtimestamp(int(float(string['time']))), string['title'],
+            return cls(d.datetime.fromtimestamp(int(float(string['time']))), string['title'],
                     d.datetime.fromtimestamp(int(float(string['start']))),
                     d.datetime.fromtimestamp(int(float(string['end']))), string['msg'])
         except (KeyError):
@@ -59,7 +57,7 @@ class Reminder(n.Notification):
 
     
     def __dict__(self):
-        result = super(Reminder, self).__dict__() 
+        result = super().__dict__()
         result['start'] = d.datetime.timestamp(self.start)
         result['end'] = d.datetime.timestamp(self.end)
         result['msg'] = self.msg
@@ -70,7 +68,3 @@ class Reminder(n.Notification):
         return j.dumps(self.__dict__())
 
 
-no = Reminder(d.datetime.now(), 'abcdefg', d.datetime.today(), d.datetime.today() + d.timedelta(days=1), 'abc')
-print(no.__str__())
-no2 = Reminder.fromjson(no.__str__())
-print(no2.__str__())

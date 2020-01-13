@@ -50,10 +50,11 @@ class Notification():
         -title ----> title string
     '''
     def __dict__(self):
-        return {
-                "time": d.datetime.timestamp(self.time),
+        result =  {
+                "time": float(d.datetime.timestamp(self.time)),
                 "title": self.title,
             }
+        return result
     
     '''
     returns the json string representing a Notification Object

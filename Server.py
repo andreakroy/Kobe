@@ -161,13 +161,12 @@ class Notifications:
     def __init__(self):
         try:
             with open('notifications.json', 'r') as notifications:
-                temp = json.load(notifications)
-                for i in temp:
+                temp = []
+                for i in json.load(notifications):
                     try:
-                        element = json.loads(i)
-                        self.notification_list.append(r.Reminder(element['time))
-                    if not isinstance(i, n.Notification):
-                        raise TypeError('All items in notification_list must be Notifcation objecs')
+                        temp.append(r.Reminder.fromjson(i))
+                    except:
+                        temp.append(r.Reminder.fromjson(i))
                 self.notification_list = temp
         except (FileNotFoundError, TypeError):
             self.notification_list = []
@@ -202,7 +201,7 @@ class Notifications:
     def get(self, type_=n.Notification, start=None, end=None, query=None):
         if not isinstance(type_, type):
             raise TypeError('The type_parameter is invalid. type_ must be type object')
-        if type_ != n.Notification or type_ != r.Reminder or type_ != a.Alarm:
+        if type_ != n.Notification and type_ != r.Reminder and type_ != a.Alarm:
             raise ValueError('The type_ parameter is invalid. type_ must be Notification, Reminder, or Alarm')
         if start != None and not isinstance(start, d.datetime):
             raise TypeError('The start parameter is invalid. start must be a datetime object')
@@ -211,7 +210,7 @@ class Notifications:
         if query != None and not isinstance(query, str):
             raise TypeError('The query parameter is invalid. query must be a string')
         ret = []
-        for notification in notification_list:
+        for notification in self.notification_list:
             if isinstance(notification, type_):
                 if start == None or notification.time >= start:
                     if end == None or notification.time <= end:
@@ -253,86 +252,7 @@ class Notifications:
                 pass
 
     
-    #define url routing
-    @app.route('/notifications', methods=['GET', 'POST', 'PUT', 'DELETE'])
-    def notifications(self):
-        #GET
-        '''
-        if a title argument is passed get the notification with that title if it exists
-        else get a json with every notification on the server
-        '''
-        if request.method == 'GET':
-            try:
-                try:
-                    type_  = request.args['type']
-                except KeyError as e:
-                    type_ = n.Notification
-                
-                try:
-                    start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
-                except KeyError as e:
-                    start  = None
-                
-                try:
-                    end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
-                except KeyError as e:
-                    end = None
-
-                try:
-                    query  = request.args['query']
-                except KeyError as e:
-                    query = None
-
-                temp = self.get(type_, start, end, query)
-                if len(temp) == 0:
-                    return ('No Notifications found', 404)
-                else:
-                    return jsonify(temp)
-            
-            except (TypeError, ValueError) as e:
-                return (str(e), 400)
-        
-
-
- 
-               
-        #POST
-        elif request.method == 'POST':
-            try:
-                try:
-                    type_  = request.args['type']
-                except KeyError as e:
-                    raise ValueError('POST request requires the type of the notification')
-                
-                try:
-                    time  = d.datetime.fromtimestamp(int(float(request.args['time'])))
-                except KeyError as e:
-                    raise ValueError('POST request requires the alert time of the notification' )
-               
-                try:
-                    title = request.args('title')
-                except KeyError as e:
-                    raise ValueError('POST request requires the title of the notifcation')
-                
-                try:
-                    start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
-                except KeyError as e:
-                    start  = None
-                
-                try:
-                    end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
-                except KeyError as e:
-                    end = None
-
-                try:
-                    msg  = request.args['msg']
-                except KeyError as e:
-                    msg = None
-
-                return post(type_, time, title. start, end, msg)
-            
-            except (TypeError, ValueError, OSError, OverflowError) as e:
-                return (str(e), 400)
+    
             
     ''' 
     #PUT
@@ -391,9 +311,111 @@ class Notifications:
 '''
 
 
+
+context = Notifications()
+
+#define url routing
+@app.route('/notifications', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def notifications():
+    #GET
+    '''
+    if a title argument is passed get the notification with that title if it exists
+    else get a json with every notification on the server
+    '''
+    if request.method == 'GET':
+        try:
+            try:
+                if request.args['type'] == str(a.Alarm):
+                    type_ = a.Alarm
+                elif request.args['type'] == str(r.Reminder):
+                    type_ = r.Reminder
+                elif request.args['type'] == str(n.Notification):
+                    type_ = n.Notification
+            except KeyError as e:
+                type_ = n.Notification
+
+            try:
+                start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
+            except KeyError as e:
+                start  = None
+                
+            try:
+                end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
+            except KeyError as e:
+                end = None
+
+            try:
+                query  = request.args['query']
+            except KeyError as e:
+                query = None
+
+            temp = context.get(type_, start, end, query)
+            if len(temp) == 0:
+                return ('No Notifications found', 404)
+            else:
+                return jsonify(temp)
+            
+        except (TypeError, ValueError) as e:
+            return (str(e), 400)
+        
+
+
+ 
+               
+    #POST
+    elif request.method == 'POST':
+        try:
+            try:
+                if request.args['type'] == str(a.Alarm):
+                    type_ = a.Alarm
+                elif request.args['type'] == str(r.Reminder):
+                    type_ = r.Reminder
+                else:
+                    return (str(ValueError('POST request requires a type parameter of either Alarm or Reminder')))
+            
+            except KeyError as e:
+                return (str(ValueError('POST request requires the type of the notification')), 400)
+                
+            try:
+                time  = d.datetime.fromtimestamp(int(float(request.args['time'])))
+            except KeyError as e:
+                raise ValueError('POST request requires the alert time of the notification' )
+               
+            try:
+                title = request.args['title']
+            except KeyError as e:
+                raise ValueError('POST request requires the title of the notifcation')
+                
+            try:
+                start  = d.datetime.fromtimestamp(int(float(request.args['start'])))
+            except KeyError as e:
+                start  = None
+                
+            try:
+                end  = d.datetime.fromtimestamp(int(float(request.args['end']))) 
+            except KeyError as e:
+                end = None
+
+            try:
+                msg  = request.args['msg']
+            except KeyError as e:
+                msg = None
+            
+            return (context.post(type_, time, title, start, end, msg).__str__(), 200)
+            
+        except (ValueError, OSError, OverflowError) as e:
+            return (str(e), 400)
+
+
+
+#define url routing
+@app.route('/time', methods=['GET'])
+def time():
+    #GET
+    if request.method == 'GET':
+        return (str(d.datetime.now()), 200)
+    
 #DRIVER            
-if __name__ == '__main__':
-    context = Notifications()
-    #atexit.register(on_shutdown(context))
+if __name__ == '__main__':     
     app.run(debug=True)
     
