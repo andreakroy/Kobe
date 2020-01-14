@@ -5,8 +5,10 @@ import Notification as n
 import Alarm as a
 import datetime as d
 import Reminder as r
-import atexit
 import json
+import threading as th
+import time as time_module
+from playsound import playsound
 
 app = Flask(__name__)
 api = Api(app)
@@ -222,6 +224,30 @@ def time():
         return (str(d.datetime.now()), 200)
     else:
         return ('time only has a GET endpoint', 400)
+
+def ring():
+    print('hi')
+
+'''
+timer endpoint
+takes two arguments
+    -action: either start, pause, or cancel
+    -interval: number of seconds
+plays a sound when the timer expires
+'''
+@app.route('/timer', methods=['POST'])
+def timer():
+    #POST
+    if request.method == 'POST':
+        if 'action' in request.args:
+            if request.args['action'] == 'start':
+                try:
+                    time_module.sleep(float(request.args['interval']))
+                    playsound('ring.mp3')
+                    time = d.datetime.timestamp(d.datetime.now()) + float(request.args['interval'])i
+                except KeyError, TypeError as e:
+                    return ('No interval provided. interval must be a float for number of seconds', 400)
+                return(request.args['action'], 200)
 
 #DRIVER            
 if __name__ == '__main__':     
