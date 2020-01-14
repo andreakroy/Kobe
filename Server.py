@@ -101,7 +101,13 @@ class Notifications:
             else:
                 raise ValueError('This Notification already exists on the server')
 
-    
+    def delete(self, notification):
+        if not isinstance(notification, n.Notification):
+            raise TypeError('notification must be a notification object')
+        if notification in self.notification_list:
+            temp = notification
+            self.notification_list.remove(notification)
+            return temp
                
 context = Notifications()
 
@@ -194,6 +200,19 @@ def notifications():
         except (TypeError, ValueError, OSError, OverflowError) as e:
             return (str(e), 400)
 
+    #DELETE
+    elif request.method == 'DELETE':
+        try:
+            if 'notification' in request.args:
+                temp = n.Notification.fromjson(request.args['notification'])
+                context.delete(temp)
+            else:
+                raise ValueError('invalid notification parameter')
+
+        except (KeyError, TypeError, ValueError) as e:
+            return (str(e), 400)
+
+
 
 #define url routing
 @app.route('/time', methods=['GET'])
@@ -203,6 +222,7 @@ def time():
         return (str(d.datetime.now()), 200)
     else:
         return ('time only has a GET endpoint', 400)
+
 #DRIVER            
 if __name__ == '__main__':     
     app.run(debug=True)
