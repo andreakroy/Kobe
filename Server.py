@@ -1,6 +1,7 @@
 from flask import Flask, Response, jsonify, request, abort
 from flask_restful import Resource, Api, reqparse
 import requests 
+from requests.exceptions import HTTPError
 import Notification as n
 import Alarm as a
 import datetime as d
@@ -225,8 +226,13 @@ def time():
     else:
         return ('time only has a GET endpoint', 400)
 
-def ring():
-    print('hi')
+
+
+
+def ring(interval):
+    time_module.sleep(interval)
+    playsound('ring.mp3')
+
 
 '''
 timer endpoint
@@ -237,19 +243,86 @@ plays a sound when the timer expires
 '''
 @app.route('/timer', methods=['POST'])
 def timer():
+    time_thread = th.current_thread()
     #POST
     if request.method == 'POST':
-        if 'action' in request.args:
-            if request.args['action'] == 'start':
-                try:
-                    time_module.sleep(float(request.args['interval']))
-                    playsound('ring.mp3')
-                    time = d.datetime.timestamp(d.datetime.now()) + float(request.args['interval'])i
-                except KeyError, TypeError as e:
-                    return ('No interval provided. interval must be a float for number of seconds', 400)
-                return(request.args['action'], 200)
+        try:
+            interval = float(request.args['interval'])
+            time_thread = th.Thread(target=ring, args=(interval,))
+            time_thread.start()
+            time_thread.join()
+            return(request.args['action'], 200)
+        except (KeyError, TypeError) as e:
+            return ('No interval provided. interval must be a float for number of seconds', 400)
 
-#DRIVER            
+
+'''
+dictionary endpoint
+takes a word argument and returns its dictionary entry
+'''
+@app.route('/dictionary', methods=['GET'])
+def dictionary():
+    #GET
+    if request.method == 'GET':
+        try:
+            url = "https://wordsapiv1.p.rapidapi.com/words/" + str(request.args['word'] + '/definitions')
+            headers = {
+                        'x-rapidapi-host': "wordsapiv1.p.rapidapi.com",
+                            'x-rapidapi-key': "8945b93791msh0bec4525b5d81a5p17c41ajsnae11949ad6ea"
+                    }
+            try:
+                index = 1
+                response = requests.get(url, headers=headers) 
+                response.raise_for_status()
+                result = ''
+                temp = json.loads(response.content)
+                for wrd in temp['definitions']:
+                    result += str(index) + '. ' + wrd['partOfSpeech'] + '. ' + wrd['definition'] + '. '
+                    index += 1
+                return result
+            except HTTPError as e:
+                return(str(e), 400)
+
+        except (ValueError, KeyError) as e:
+            return ('dictionary requires a string word parameter', 400)
+    else:
+        return('dictionary only has a GET request', 400)
+
+
+
+'''
+thesaurus endpoint
+takes a word argument and returns json
+    {'synonms: []
+    'antonyms': []}
+'''
+@app.route('/thesaurus', methods=['GET'])
+def thesaurus():
+    #GET
+    if request.method == 'GET':
+        try:
+            url = "https://wordsapiv1.p.rapidapi.com/words/" + str(request.args['word'])
+            headers = {
+                        'x-rapidapi-host': "wordsapiv1.p.rapidapi.com",
+                         'x-rapidapi-key': "8945b93791msh0bec4525b5d81a5p17c41ajsnae11949ad6ea"
+                    }
+            try:
+                response = requests.get(url + '/synonyms', headers=headers) 
+                response.raise_for_status()
+                temp = json.loads(response.content)
+                result = ''
+                for wrd in temp['synonyms']:
+                    result += wrd + '. '
+                return result
+            except HTTPError as e:
+                return(str(e), 400)
+
+        except (ValueError, KeyError) as e:
+            return ('dictionary requires a string word parameter', 400)
+    else:
+        return('dictionary only has a GET request', 400)
+
+
 if __name__ == '__main__':     
     app.run(debug=True)
     
