@@ -8,7 +8,7 @@ import Weather as w
 import datetime
 
 r = sr.Recognizer()
-m = sr.Microphone()
+mic = sr.Microphone()
 
 global speech_input
 
@@ -18,25 +18,14 @@ def read(text):
     tts.save('temp.mp3')
     playsound('temp.mp3')
 
-def callback(recognizer, audio):
-    try:
-        read(recognizer.recognize_google(audio))
-        #speech_input =  recognizer.recognize_google(audio)
-    except sr.UnknownValueError:
-        print("Google Speech Recognition could not understand audio")
-    except sr.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+def callback(recognizer, audio):                          # this is called from the background thread
+        try:
+            print("You said " + recognizer.recognize_google(audio))  # received audio data, now need to recognize it
+        except (sr.UnknownValueError, LookupError):
+            print("Oops! Didn't catch that")
 
-def listen_for_key():
-    with m as source:
-        r.energy_threshold = 300
-        r.dynamic_energy_threshold = True
-        r.adjust_for_ambient_noise(source)
-    while x == True:
-        stop = r.listen_in_background(m, callback)
-        time.sleep(1)
-
-x = datetime.datetime(2020, 1, 21)
-t = w.Weather_Forecast('61820', x)
-print(t.full_readout())
-read(t.full_readout())
+r = sr.Recognizer()
+r.energy_threshold = 2000
+r.listen_in_background(sr.Microphone(), callback)
+                                
+while True: time.sleep(1)
